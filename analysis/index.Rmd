@@ -8,4 +8,63 @@ editor_options:
   chunk_output_type: console
 ---
 
-Welcome to my research website.
+Here is my analysis of the NOAA tornado data.
+
+```{r}
+list.files(".")
+filesNames <- Sys.glob("data/*.csv")
+filesNames[1]
+dat <- read.csv(filesNames[1],stringsAsFactors=FALSE)
+head(dat)
+datT1 <- data.frame
+
+length(filesNames)
+
+
+
+
+get_storm_event_table <- function (filename,event) {
+
+  dat <- read.csv(filename,stringsAsFactors=FALSE)
+  dat <- transform(dat,
+                   lat  = round(BEGIN_LAT),
+                   long = round(BEGIN_LON))
+  if (event == "Tornado")
+    dat <- subset(dat,EVENT_TYPE == event & (TOR_F_SCALE == "F5" |  TOR_F_SCALE == "F4" | TOR_F_SCALE == "F3"))
+  else if(event != "All"){
+    dat <- subset(dat,EVENT_TYPE == event)
+  }
+
+  dat <- transform(dat,
+                   lat  = factor(lat,-14:63),
+                   long = factor(long,-171:-65))
+  return(table(dat$lat,dat$long))
+}
+makeplot <- function(low,high,event){
+
+  low <- (low - 1949)
+  high <- (high - 1949)
+  datT <- get_storm_event_table(filesNames[low],event)
+  for (i in (low+1):high){
+    print(i)
+    datT = datT + get_storm_event_table(filesNames[i],event)
+
+  }
+  datTframe1 <- data.frame(lat   = as.vector(matrix(as.numeric(colnames(datT)),78,107,byrow=TRUE)),
+                           long  = as.vector(matrix(as.numeric(rownames(datT)),78,107,byrow=FALSE)),
+                           count = as.vector(datT^(.5)))
+  datTplot1 <- ggplot(datTframe1, aes(x = lat, y = long, color = count)) +
+    geom_path(data = map_data("state"),aes(x = long,y = lat,group = group),
+              color = "black") +
+    geom_point(size = 2) +
+    scale_color_gradient2(low = "darkgreen",high = "magenta",mid = "skyblue") +
+    theme_minimal()
+  return(datTplot1)
+
+}
+
+library(maps)
+library(ggplot2)
+makeplot(1950,1960,"All")
+
+```
